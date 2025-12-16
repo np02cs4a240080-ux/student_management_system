@@ -1,47 +1,57 @@
 <?php
-require 'header.php';
-
-$message = "";
-
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    try {
-        $file = $_FILES['portfolio'];
-        $allowed = ["application/pdf", "image/jpeg", "image/png"];
-        $maxSize = 2 * 1024 * 1024;
-
-        if ($file['error'] != 0) {
-            throw new Exception("Upload error");
-        }
-
-        if (!in_array($file['type'], $allowed)) {
-            throw new Exception("Only PDF, JPG, PNG allowed");
-        }
-
-        if ($file['size'] > $maxSize) {
-            throw new Exception("File size must be under 2MB");
-        }
-
-        if (!is_dir("uploads")) {
-            throw new Exception("Uploads folder not found");
-        }
-
-        $ext = pathinfo($file['name'], PATHINFO_EXTENSION);
-        $newName = "portfolio_" . time() . "." . $ext;
-
-        move_uploaded_file($file['tmp_name'], "uploads/" . $newName);
-        $message = "File uploaded successfully";
-    } catch (Exception $e) {
-        $message = $e->getMessage();
-    }
-}
+include "header.php";
 ?>
 
-<h2>Upload Portfolio</h2>
-<p><?php echo $message; ?></p>
+<div class="container">
+    <h2>Upload Student File</h2>
 
-<form method="post" enctype="multipart/form-data">
-    <input type="file" name="portfolio"><br><br>
-    <button type="submit">Upload</button>
-</form>
+<?php
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
-<?php require 'footer.php'; ?>
+    if (!isset($_FILES["file"]) || $_FILES["file"]["error"] != 0) {
+        echo "<p style='color:red;'>❌ File not selected or upload error.</p>";
+    } else {
+
+        $fileName = $_FILES["file"]["name"];
+        $fileTmp  = $_FILES["file"]["tmp_name"];
+        $fileSize = $_FILES["file"]["size"];
+        $fileType = mime_content_type($fileTmp);
+
+        $allowed = ["application/pdf", "image/jpeg", "image/png"];
+        $maxSize = 2 * 1024 * 1024; // 2MB
+
+        if (!in_array($fileType, $allowed)) {
+            echo "<p style='color:red;'>❌ Only PDF, JPG, PNG allowed.</p>";
+        } elseif ($fileSize > $maxSize) {
+            echo "<p style='color:red;'>❌ File must be less than 2MB.</p>";
+        } else {
+
+            $uploadDir = "uploads/";
+            if (!is_dir($uploadDir)) {
+                mkdir($uploadDir, 0777, true);
+            }
+
+            $newFileName = time() . "_" . basename($fileName);
+
+            if (move_uploaded_file($fileTmp, $uploadDir . $newFileName)) {
+                echo "<p style='color:green;'>✅ File uploaded successfully!</p>";
+                echo "<p>Saved as: <b>$newFileName</b></p>";
+            } else {
+                echo "<p style='color:red;'>❌ Upload failed.</p>";
+            }
+
+        } // ← closes inner else
+    } // ← closes file check else
+} // ← closes REQUEST_METHOD if
+?>
+
+    <form method="POST" enctype="multipart/form-data">
+        <input type="file" name="file" required>
+        <br><br>
+        <button type="submit">Upload</button>
+    </form>
+</div>
+
+<?php
+include "footer.php";
+?>
